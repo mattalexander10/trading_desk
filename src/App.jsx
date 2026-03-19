@@ -55,24 +55,18 @@ STYLE: concise, smart, conversational, trader-facing.
 `;
 
 async function supabaseQuery(table, search) {
-  const fields = {
-    color: ["Property", "BID", "OFFERS", "PX COLOR", "ACCOUNT", "ACCOUNT 1", "SIZE", "NOTES", "DATE"],
-    axes: ["Summary", "Counterparty", "Trade Type", "Security", "Price", "Size", "Date"],
-    trade_history: ["Name", "CUSIP/ISIN", "B/S", "Total Price", "Gross Revenue", "Trade Date", "Counterparty", "Salesperson"],
-  };
-
-  const cols = fields[table].map(f => `"${f}"`).join(",");
-  const searchCol = table === "color" ? "Property" : table === "axes" ? "Security" : "Name";
-
-  const url = `${SUPABASE_URL}/rest/v1/${table}?select=${encodeURIComponent(cols)}&"${searchCol}"=ilike.*${encodeURIComponent(search)}*&limit=10`;
+  const searchCol = table === "color" ? "Property" : table === "axes" ? "Summary" : "Name";
+  const url = `${SUPABASE_URL}/rest/v1/${table}?${searchCol}=ilike.*${encodeURIComponent(search)}*&limit=10`;
 
   const res = await fetch(url, {
     headers: {
       apikey: SUPABASE_KEY,
       Authorization: `Bearer ${SUPABASE_KEY}`,
+      "Content-Type": "application/json",
     },
   });
-  return res.ok ? res.json() : [];
+  if (!res.ok) return [];
+  return res.json();
 }
 
 async function supabaseInsert(table, row) {
@@ -188,7 +182,6 @@ export default function App() {
       const data = await res.json();
       const text = data.content?.filter(b => b.type === "text").map(b => b.text).join("\n\n") || "No response.";
 
-      // Handle writes
       if (intent === "COLOR_ENTRY") {
         const parseRes = await fetch("/api/chat", {
           method: "POST",
@@ -286,3 +279,4 @@ export default function App() {
     </div>
   );
 }
+
